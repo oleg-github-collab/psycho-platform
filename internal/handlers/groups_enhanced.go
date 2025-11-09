@@ -38,7 +38,6 @@ func (h *GroupHandler) PinTopic(c *gin.Context) {
 }
 
 func (h *GroupHandler) UnpinTopic(c *gin.Context) {
-	userID := c.GetString("user_id")
 	topicID := c.Param("id")
 
 	role := c.GetString("user_role")
