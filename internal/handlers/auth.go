@@ -104,7 +104,8 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			COALESCE(display_name, username),
 			COALESCE(avatar_url, ''),
 			COALESCE(bio, ''),
-			COALESCE(role, 'basic'),
+			COALESCE(role, 'user'),
+			COALESCE(is_psychologist, false),
 			is_active,
 			created_at,
 			updated_at
@@ -112,7 +113,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		WHERE username = $1
 	`, req.Username).Scan(
 		&user.ID, &user.Username, &user.PasswordHash, &user.DisplayName,
-		&user.AvatarURL, &user.Bio, &user.Role,
+		&user.AvatarURL, &user.Bio, &user.Role, &user.IsPsychologist,
 		&user.IsActive, &user.CreatedAt, &user.UpdatedAt,
 	)
 
