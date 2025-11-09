@@ -3,6 +3,8 @@ package database
 import (
 	"database/sql"
 	"log"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func RunMigrations(db *sql.DB) error {
@@ -266,6 +268,44 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
+	// Create superadmin if not exists
+	if err := createSuperAdmin(db); err != nil {
+		log.Printf("Warning: Failed to create superadmin: %v", err)
+	}
+
 	log.Println("Migrations completed successfully")
+	return nil
+}
+
+func createSuperAdmin(db *sql.DB) error {
+	// Check if superadmin already exists
+	var exists bool
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE username = 'Oleh')").Scan(&exists)
+	if err != nil {
+		return err
+	}
+
+	if exists {
+		log.Println("Superadmin already exists")
+		return nil
+	}
+
+	// Hash password QwertY24
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte("QwertY24"), 14)
+	if err != nil {
+		return err
+	}
+
+	// Create superadmin
+	_, err = db.Exec(`
+		INSERT INTO users (username, password_hash, display_name, role, is_active)
+		VALUES ($1, $2, $3, 'admin', true)
+	`, "Oleh", hashedPassword, "Oleh (Superadmin)")
+
+	if err != nil {
+		return err
+	}
+
+	log.Println("Superadmin created successfully: Oleh")
 	return nil
 }

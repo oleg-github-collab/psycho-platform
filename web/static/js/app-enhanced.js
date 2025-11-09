@@ -284,6 +284,11 @@ function attachEventListeners() {
       e.preventDefault();
       state.currentView = e.target.dataset.view;
       render();
+
+      // Load data for specific views
+      if (state.currentView === 'admin') {
+        loadAdminData();
+      }
     });
   });
 
@@ -357,6 +362,7 @@ function renderNavbar() {
           <li><a href="#" class="nav-link ${state.currentView === 'groups' ? 'active' : ''}" data-view="groups">👥 Групи</a></li>
           <li><a href="#" class="nav-link ${state.currentView === 'sessions' ? 'active' : ''}" data-view="sessions">🎥 Вебінари</a></li>
           <li><a href="#" class="nav-link ${state.currentView === 'users' ? 'active' : ''}" data-view="users">👤 Користувачі</a></li>
+          ${state.user?.role === 'admin' ? `<li><a href="#" class="nav-link ${state.currentView === 'admin' ? 'active' : ''}" data-view="admin">🔧 Адмін</a></li>` : ''}
           <li><a href="#" class="nav-link ${state.currentView === 'profile' ? 'active' : ''}" data-view="profile">⚙️ Профіль</a></li>
         </ul>
         <div style="display: flex; align-items: center; gap: 1rem;">
@@ -406,6 +412,8 @@ function renderView() {
       return renderUsers();
     case 'profile':
       return renderProfile();
+    case 'admin':
+      return renderAdmin();
     default:
       return '<div class="loading"><div class="spinner"></div>Завантаження...</div>';
   }
@@ -518,6 +526,104 @@ function renderTopicDetail() {
   `;
 }
 
+function renderAdmin() {
+  return `
+    <div class="glass" style="padding: 2rem; margin: 2rem 0;">
+      <h1 style="margin-bottom: 2rem;">🔧 Панель адміністратора</h1>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+        <div class="glass" style="padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+          <div style="font-size: 1.5rem; font-weight: bold;" id="admin-users-count">-</div>
+          <div style="color: var(--text-secondary);">Користувачів</div>
+        </div>
+        <div class="glass" style="padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">💬</div>
+          <div style="font-size: 1.5rem; font-weight: bold;" id="admin-topics-count">-</div>
+          <div style="color: var(--text-secondary);">Тем</div>
+        </div>
+        <div class="glass" style="padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">💭</div>
+          <div style="font-size: 1.5rem; font-weight: bold;" id="admin-messages-count">-</div>
+          <div style="color: var(--text-secondary);">Повідомлень</div>
+        </div>
+        <div class="glass" style="padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+          <div style="font-size: 1.5rem; font-weight: bold;" id="admin-groups-count">-</div>
+          <div style="color: var(--text-secondary);">Груп</div>
+        </div>
+      </div>
+
+      <h2 style="margin: 2rem 0 1rem;">Користувачі</h2>
+      <div id="admin-users-list"></div>
+    </div>
+  `;
+}
+
+async function loadAdminData() {
+  try {
+    const stats = await apiCall('/admin/stats');
+    document.getElementById('admin-users-count').textContent = stats.users_count || 0;
+    document.getElementById('admin-topics-count').textContent = stats.topics_count || 0;
+    document.getElementById('admin-messages-count').textContent = stats.messages_count || 0;
+    document.getElementById('admin-groups-count').textContent = stats.groups_count || 0;
+
+    const users = await apiCall('/admin/users');
+    const usersList = document.getElementById('admin-users-list');
+    usersList.innerHTML = users.map(user => `
+      <div class="glass" style="padding: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <div style="font-weight: bold;">${user.display_name || user.username}</div>
+          <div style="color: var(--text-secondary); font-size: 0.9rem;">@${user.username}</div>
+          <div style="margin-top: 0.5rem;">
+            <span style="background: ${user.role === 'admin' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem;">
+              ${user.role === 'admin' ? '👑 Адмін' : '👤 Користувач'}
+            </span>
+            ${user.is_psychologist ? '<span style="background: var(--accent); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; margin-left: 0.5rem;">🧠 Психолог</span>' : ''}
+            <span style="background: ${user.is_active ? '#10b981' : '#ef4444'}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; margin-left: 0.5rem;">
+              ${user.is_active ? '✓ Активний' : '✗ Неактивний'}
+            </span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="toggleUserStatus('${user.id}', ${!user.is_active})">
+            ${user.is_active ? 'Деактивувати' : 'Активувати'}
+          </button>
+          <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="togglePsychologist('${user.id}', ${!user.is_psychologist})">
+            ${user.is_psychologist ? 'Забрати психолога' : 'Зробити психологом'}
+          </button>
+        </div>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Failed to load admin data:', error);
+  }
+}
+
+async function toggleUserStatus(userId, activate) {
+  try {
+    await apiCall(`/admin/users/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_active: activate })
+    });
+    loadAdminData();
+  } catch (error) {
+    alert('Помилка: ' + error.message);
+  }
+}
+
+async function togglePsychologist(userId, isPsychologist) {
+  try {
+    await apiCall(`/admin/users/${userId}/psychologist`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_psychologist: isPsychologist })
+    });
+    loadAdminData();
+  } catch (error) {
+    alert('Помилка: ' + error.message);
+  }
+}
+
 // Initialize
 if (state.token) {
   apiCall('/auth/me')
@@ -536,6 +642,8 @@ if (state.token) {
 
 // Export functions to window for onclick handlers
 window.logout = logout;
+window.toggleUserStatus = toggleUserStatus;
+window.togglePsychologist = togglePsychologist;
 window.voteTopic = (id, type) => apiCall(`/topics/${id}/vote?type=${type}`, { method: 'POST' }).then(fetchTopics);
 window.openTopic = (id) => {
   state.currentTopic = id;
