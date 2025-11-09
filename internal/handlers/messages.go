@@ -175,3 +175,150 @@ func (h *MessageHandler) RemoveReaction(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"success": true})
 }
+
+func (h *MessageHandler) EditMessage(c *gin.Context) {
+	userID := c.GetString("user_id")
+	messageID := c.Param("id")
+
+	var req struct {
+		Content string `json:"content" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Verify ownership
+	var ownerID string
+	err := h.db.QueryRow("SELECT user_id FROM messages WHERE id = $1", messageID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		return
+	}
+
+	if ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot edit other user's message"})
+		return
+	}
+
+	_, err = h.db.Exec(`
+		UPDATE messages
+		SET content = $1, is_edited = true, edited_at = CURRENT_TIMESTAMP
+		WHERE id = $2
+	`, req.Content, messageID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to edit message"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func (h *MessageHandler) DeleteMessage(c *gin.Context) {
+	userID := c.GetString("user_id")
+	messageID := c.Param("id")
+
+	// Verify ownership
+	var ownerID string
+	err := h.db.QueryRow("SELECT user_id FROM messages WHERE id = $1", messageID).Scan(&ownerID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Message not found"})
+		return
+	}
+
+	if ownerID != userID {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Cannot delete other user's message"})
+		return
+	}
+
+	_, err = h.db.Exec(`
+		UPDATE messages
+		SET is_deleted = true, deleted_at = CURRENT_TIMESTAMP, content = '[Видалено]'
+		WHERE id = $1
+	`, messageID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete message"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func (h *MessageHandler) MarkAsRead(c *gin.Context) {
+	userID := c.GetString("user_id")
+	messageID := c.Param("id")
+
+	_, err := h.db.Exec(`
+		INSERT INTO message_read_receipts (message_id, user_id)
+		VALUES ($1, $2)
+		ON CONFLICT (message_id, user_id) DO NOTHING
+	`, messageID, userID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to mark as read"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func (h *MessageHandler) StartTyping(c *gin.Context) {
+	userID := c.GetString("user_id")
+	roomID := c.Query("room")
+
+	if roomID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "room parameter required"})
+		return
+	}
+
+	_, err := h.db.Exec(`
+		INSERT INTO typing_indicators (user_id, room_id, started_at)
+		VALUES ($1, $2, CURRENT_TIMESTAMP)
+		ON CONFLICT (user_id, room_id)
+		DO UPDATE SET started_at = CURRENT_TIMESTAMP
+	`, userID, roomID)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update typing status"})
+		return
+	}
+
+	// Broadcast typing indicator
+	h.hub.BroadcastToRoom(roomID, map[string]interface{}{
+		"type": "typing",
+		"payload": map[string]interface{}{
+			"user_id":  userID,
+			"is_typing": true,
+		},
+	})
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}
+
+func (h *MessageHandler) StopTyping(c *gin.Context) {
+	userID := c.GetString("user_id")
+	roomID := c.Query("room")
+
+	if roomID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "room parameter required"})
+		return
+	}
+
+	h.db.Exec(`
+		DELETE FROM typing_indicators
+		WHERE user_id = $1 AND room_id = $2
+	`, userID, roomID)
+
+	// Broadcast stop typing
+	h.hub.BroadcastToRoom(roomID, map[string]interface{}{
+		"type": "typing",
+		"payload": map[string]interface{}{
+			"user_id":  userID,
+			"is_typing": false,
+		},
+	})
+
+	c.JSON(http.StatusOK, gin.H{"success": true})
+}

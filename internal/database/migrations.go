@@ -14,6 +14,7 @@ func RunMigrations(db *sql.DB) error {
 			display_name VARCHAR(100),
 			avatar_url TEXT,
 			bio TEXT,
+			status VARCHAR(100),
 			role VARCHAR(20) DEFAULT 'user',
 			is_psychologist BOOLEAN DEFAULT FALSE,
 			is_active BOOLEAN DEFAULT TRUE,
@@ -72,7 +73,9 @@ func RunMigrations(db *sql.DB) error {
 			parent_id UUID REFERENCES messages(id) ON DELETE CASCADE,
 			quoted_message_id UUID REFERENCES messages(id) ON DELETE SET NULL,
 			is_edited BOOLEAN DEFAULT FALSE,
+			is_deleted BOOLEAN DEFAULT FALSE,
 			edited_at TIMESTAMP,
+			deleted_at TIMESTAMP,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
@@ -136,15 +139,72 @@ func RunMigrations(db *sql.DB) error {
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)`,
 
+		`CREATE TABLE IF NOT EXISTS user_status (
+			user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+			is_online BOOLEAN DEFAULT FALSE,
+			last_seen TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS user_blocks (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			blocked_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user_id, blocked_user_id)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS conversations (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user1_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			user2_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			last_message_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user1_id, user2_id)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS direct_messages (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+			sender_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			content TEXT NOT NULL,
+			is_read BOOLEAN DEFAULT FALSE,
+			is_edited BOOLEAN DEFAULT FALSE,
+			is_deleted BOOLEAN DEFAULT FALSE,
+			edited_at TIMESTAMP,
+			deleted_at TIMESTAMP,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS message_read_receipts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			read_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(message_id, user_id)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS typing_indicators (
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			room_id VARCHAR(255) NOT NULL,
+			started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY(user_id, room_id)
+		)`,
+
 		`CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_reactions_message ON reactions(message_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_topic_votes_topic ON topic_votes(topic_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_sessions_psychologist ON sessions(psychologist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_appointments_psychologist ON appointments(psychologist_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_appointments_client ON appointments(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_blocks_user ON user_blocks(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_conversations_users ON conversations(user1_id, user2_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_direct_messages_conversation ON direct_messages(conversation_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_user_status_online ON user_status(is_online)`,
 	}
 
 	for _, migration := range migrations {

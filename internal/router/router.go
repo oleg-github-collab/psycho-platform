@@ -49,6 +49,8 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 	sessionHandler := handlers.NewSessionHandler(db, cfg)
 	appointmentHandler := handlers.NewAppointmentHandler(db)
 	adminHandler := handlers.NewAdminHandler(db)
+	profileHandler := handlers.NewProfileHandler(db)
+	dmHandler := handlers.NewDMHandler(db, hub)
 
 	// Public routes
 	api := r.Group("/api")
@@ -64,6 +66,21 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		// Auth
 		protected.GET("/auth/me", authHandler.GetMe)
 
+		// Profile
+		protected.PATCH("/profile", profileHandler.UpdateProfile)
+		protected.GET("/profile/:id", profileHandler.GetUserProfile)
+		protected.GET("/users/search", profileHandler.SearchUsers)
+		protected.POST("/users/:id/block", profileHandler.BlockUser)
+		protected.DELETE("/users/:id/block", profileHandler.UnblockUser)
+		protected.GET("/users/blocked", profileHandler.GetBlockedUsers)
+		protected.POST("/status/online", profileHandler.SetOnlineStatus)
+
+		// Direct Messages
+		protected.GET("/conversations", dmHandler.GetConversations)
+		protected.POST("/conversations/send", dmHandler.SendDirectMessage)
+		protected.GET("/conversations/:id/messages", dmHandler.GetMessages)
+		protected.POST("/conversations/:id/read", dmHandler.MarkAsRead)
+
 		// Topics
 		protected.GET("/topics", topicHandler.GetTopics)
 		protected.POST("/topics", topicHandler.CreateTopic)
@@ -72,8 +89,13 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		// Messages
 		protected.GET("/messages", messageHandler.GetMessages)
 		protected.POST("/messages", messageHandler.CreateMessage)
+		protected.PATCH("/messages/:id", messageHandler.EditMessage)
+		protected.DELETE("/messages/:id", messageHandler.DeleteMessage)
 		protected.POST("/messages/:id/reactions", messageHandler.AddReaction)
 		protected.DELETE("/messages/:id/reactions", messageHandler.RemoveReaction)
+		protected.POST("/messages/:id/read", messageHandler.MarkAsRead)
+		protected.POST("/messages/typing/start", messageHandler.StartTyping)
+		protected.POST("/messages/typing/stop", messageHandler.StopTyping)
 
 		// Groups
 		protected.GET("/groups", groupHandler.GetGroups)
