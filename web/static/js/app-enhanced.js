@@ -295,13 +295,21 @@ function attachEventListeners() {
     authBtn.addEventListener('click', async () => {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
+      const displayName = document.getElementById('display-name')?.value || username;
+
+      if (!username || !password) {
+        alert('Заповніть всі поля');
+        return;
+      }
+
+      const isRegistering = authBtn.textContent === 'Зареєструватись';
 
       try {
-        const endpoint = toggleAuth && toggleAuth.textContent === 'Увійти' ? '/auth/register' : '/auth/login';
+        const endpoint = isRegistering ? '/auth/register' : '/auth/login';
         const response = await fetch(`${API_URL}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, display_name: username })
+          body: JSON.stringify({ username, password, display_name: displayName })
         });
 
         const data = await response.json();
@@ -312,7 +320,7 @@ function attachEventListeners() {
           connectWebSocket();
           render();
         } else {
-          alert(data.error || 'Помилка: ' + data.error);
+          alert('Помилка: ' + (data.error || 'Невідома помилка'));
         }
       } catch (error) {
         alert('Помилка мережі: ' + error.message);
@@ -323,12 +331,16 @@ function attachEventListeners() {
   if (toggleAuth) {
     toggleAuth.addEventListener('click', () => {
       const authBtn = document.getElementById('auth-btn');
-      if (toggleAuth.textContent === 'Реєстрація') {
-        toggleAuth.textContent = 'Увійти';
+      const displayNameGroup = document.getElementById('display-name-group');
+
+      if (authBtn.textContent === 'Увійти') {
         authBtn.textContent = 'Зареєструватись';
+        toggleAuth.textContent = 'Увійти';
+        if (displayNameGroup) displayNameGroup.style.display = 'block';
       } else {
-        toggleAuth.textContent = 'Реєстрація';
         authBtn.textContent = 'Увійти';
+        toggleAuth.textContent = 'Реєстрація';
+        if (displayNameGroup) displayNameGroup.style.display = 'none';
       }
     });
   }
