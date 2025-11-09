@@ -1,0 +1,9 @@
+.git
+.env
+.DS_Store
+*.log
+uploads/*
+!uploads/.gitkeep
+test/
+.vscode/
+.idea/
