@@ -277,6 +277,63 @@ function render() {
   attachEventListeners();
 }
 
+function attachEventListeners() {
+  // Navigation
+  document.querySelectorAll('[data-view]').forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      state.currentView = e.target.dataset.view;
+      render();
+    });
+  });
+
+  // Auth
+  const authBtn = document.getElementById('auth-btn');
+  const toggleAuth = document.getElementById('toggle-auth');
+
+  if (authBtn) {
+    authBtn.addEventListener('click', async () => {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const endpoint = toggleAuth && toggleAuth.textContent === 'Увійти' ? '/auth/register' : '/auth/login';
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, display_name: username })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          state.token = data.token;
+          state.user = data.user;
+          localStorage.setItem('token', data.token);
+          connectWebSocket();
+          render();
+        } else {
+          alert(data.error || 'Authentication failed');
+        }
+      } catch (error) {
+        alert('Network error: ' + error.message);
+      }
+    });
+  }
+
+  if (toggleAuth) {
+    toggleAuth.addEventListener('click', () => {
+      const authBtn = document.getElementById('auth-btn');
+      if (toggleAuth.textContent === 'Реєстрація') {
+        toggleAuth.textContent = 'Увійти';
+        authBtn.textContent = 'Зареєструватись';
+      } else {
+        toggleAuth.textContent = 'Реєстрація';
+        authBtn.textContent = 'Увійти';
+      }
+    });
+  }
+}
+
 function renderNavbar() {
   return `
     <nav class="navbar glass">
