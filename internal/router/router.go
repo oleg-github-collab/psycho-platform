@@ -2,14 +2,24 @@ package router
 
 import (
 	"database/sql"
+	"net/http"
 	"psycho-platform/internal/config"
 	"psycho-platform/internal/handlers"
 	"psycho-platform/internal/middleware"
 	"psycho-platform/internal/websocket"
 
 	"github.com/gin-gonic/gin"
+	gorilla "github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 )
+
+var upgrader = gorilla.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
 
 func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Config) *gin.Engine {
 	if cfg.Environment == "production" {
