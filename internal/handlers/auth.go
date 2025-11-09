@@ -55,19 +55,21 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	var user models.User
 	err = h.db.QueryRow(`
 		INSERT INTO users (username, password_hash, display_name, role)
-		VALUES ($1, $2, $3, 'basic')
+		VALUES ($1, $2, $3, 'user')
 		RETURNING id,
 			username,
 			COALESCE(display_name, username),
 			COALESCE(avatar_url, ''),
 			COALESCE(bio, ''),
-			COALESCE(role, 'basic'),
+			COALESCE(status, ''),
+			COALESCE(role, 'user'),
+			COALESCE(is_psychologist, false),
 			is_active,
 			created_at,
 			updated_at
 	`, req.Username, hashedPassword, displayName).Scan(
 		&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
-		&user.Bio, &user.Role, &user.IsActive,
+		&user.Bio, &user.Status, &user.Role, &user.IsPsychologist, &user.IsActive,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 
@@ -104,6 +106,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 			COALESCE(display_name, username),
 			COALESCE(avatar_url, ''),
 			COALESCE(bio, ''),
+			COALESCE(status, ''),
 			COALESCE(role, 'user'),
 			COALESCE(is_psychologist, false),
 			is_active,
@@ -113,7 +116,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		WHERE username = $1
 	`, req.Username).Scan(
 		&user.ID, &user.Username, &user.PasswordHash, &user.DisplayName,
-		&user.AvatarURL, &user.Bio, &user.Role, &user.IsPsychologist,
+		&user.AvatarURL, &user.Bio, &user.Status, &user.Role, &user.IsPsychologist,
 		&user.IsActive, &user.CreatedAt, &user.UpdatedAt,
 	)
 
@@ -159,7 +162,9 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 			COALESCE(display_name, username),
 			COALESCE(avatar_url, ''),
 			COALESCE(bio, ''),
-			COALESCE(role, 'basic'),
+			COALESCE(status, ''),
+			COALESCE(role, 'user'),
+			COALESCE(is_psychologist, false),
 			is_active,
 			created_at,
 			updated_at
@@ -167,7 +172,7 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 		WHERE id = $1
 	`, userID).Scan(
 		&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
-		&user.Bio, &user.Role, &user.IsActive,
+		&user.Bio, &user.Status, &user.Role, &user.IsPsychologist, &user.IsActive,
 		&user.CreatedAt, &user.UpdatedAt,
 	)
 
