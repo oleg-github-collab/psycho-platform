@@ -191,6 +191,53 @@ func RunMigrations(db *sql.DB) error {
 			PRIMARY KEY(user_id, room_id)
 		)`,
 
+		`CREATE TABLE IF NOT EXISTS file_attachments (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+			filename VARCHAR(255) NOT NULL,
+			original_name VARCHAR(255) NOT NULL,
+			file_type VARCHAR(50) NOT NULL,
+			file_size BIGINT NOT NULL,
+			file_url TEXT NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS message_bookmarks (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			message_id UUID REFERENCES messages(id) ON DELETE CASCADE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE(user_id, message_id)
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS activity_feed (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			activity_type VARCHAR(50) NOT NULL,
+			entity_type VARCHAR(50) NOT NULL,
+			entity_id UUID,
+			content TEXT,
+			metadata JSONB,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS group_invitations (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			group_id UUID REFERENCES groups(id) ON DELETE CASCADE,
+			invitation_code VARCHAR(50) UNIQUE NOT NULL,
+			created_by UUID REFERENCES users(id) ON DELETE CASCADE,
+			expires_at TIMESTAMP,
+			max_uses INT DEFAULT 0,
+			uses_count INT DEFAULT 0,
+			is_active BOOLEAN DEFAULT TRUE,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)`,
+
+		`ALTER TABLE topics ADD COLUMN IF NOT EXISTS is_pinned BOOLEAN DEFAULT FALSE`,
+		`ALTER TABLE topics ADD COLUMN IF NOT EXISTS pinned_at TIMESTAMP`,
+		`ALTER TABLE topics ADD COLUMN IF NOT EXISTS pinned_by UUID REFERENCES users(id) ON DELETE SET NULL`,
+
 		`CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_group ON messages(group_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_messages_user ON messages(user_id)`,
@@ -205,6 +252,12 @@ func RunMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_conversations_users ON conversations(user1_id, user2_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_direct_messages_conversation ON direct_messages(conversation_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_status_online ON user_status(is_online)`,
+		`CREATE INDEX IF NOT EXISTS idx_file_attachments_message ON file_attachments(message_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_file_attachments_user ON file_attachments(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_message_bookmarks_user ON message_bookmarks(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_activity_feed_user ON activity_feed(user_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_group_invitations_code ON group_invitations(invitation_code)`,
+		`CREATE INDEX IF NOT EXISTS idx_topics_pinned ON topics(is_pinned, pinned_at)`,
 	}
 
 	for _, migration := range migrations {

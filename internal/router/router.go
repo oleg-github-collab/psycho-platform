@@ -31,6 +31,7 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 
 	// Static files
 	r.Static("/static", "./web/static")
+	r.Static("/uploads", "./uploads")
 	r.StaticFile("/", "./web/index.html")
 	r.NoRoute(func(c *gin.Context) {
 		c.File("./web/index.html")
@@ -51,6 +52,11 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 	adminHandler := handlers.NewAdminHandler(db)
 	profileHandler := handlers.NewProfileHandler(db)
 	dmHandler := handlers.NewDMHandler(db, hub)
+	notificationHandler := handlers.NewNotificationHandler(db, hub)
+	fileHandler := handlers.NewFileHandler(db)
+	searchHandler := handlers.NewSearchHandler(db)
+	bookmarkHandler := handlers.NewBookmarkHandler(db)
+	activityHandler := handlers.NewActivityHandler(db)
 
 	// Public routes
 	api := r.Group("/api")
@@ -102,6 +108,14 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		protected.POST("/groups", groupHandler.CreateGroup)
 		protected.POST("/groups/:id/join", groupHandler.JoinGroup)
 		protected.POST("/groups/:id/leave", groupHandler.LeaveGroup)
+		protected.POST("/groups/:id/invite", groupHandler.CreateInvitation)
+		protected.POST("/groups/join/:code", groupHandler.JoinByInvitation)
+		protected.PATCH("/groups/:id/members/:member_id/role", groupHandler.UpdateMemberRole)
+		protected.DELETE("/groups/:id/members/:member_id", groupHandler.RemoveMember)
+
+		// Topics enhanced
+		protected.POST("/topics/:id/pin", groupHandler.PinTopic)
+		protected.DELETE("/topics/:id/pin", groupHandler.UnpinTopic)
 
 		// Sessions
 		protected.GET("/sessions", sessionHandler.GetSessions)
@@ -112,6 +126,33 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		protected.GET("/appointments", appointmentHandler.GetAppointments)
 		protected.POST("/appointments", appointmentHandler.CreateAppointment)
 		protected.PATCH("/appointments/:id/status", appointmentHandler.UpdateAppointmentStatus)
+
+		// Notifications
+		protected.GET("/notifications", notificationHandler.GetNotifications)
+		protected.POST("/notifications/:id/read", notificationHandler.MarkAsRead)
+		protected.POST("/notifications/read-all", notificationHandler.MarkAllAsRead)
+		protected.GET("/notifications/unread-count", notificationHandler.GetUnreadCount)
+		protected.DELETE("/notifications/:id", notificationHandler.DeleteNotification)
+
+		// Files
+		protected.POST("/upload", fileHandler.UploadFile)
+		protected.POST("/messages/:message_id/attach", fileHandler.AttachToMessage)
+		protected.GET("/messages/:message_id/files", fileHandler.GetMessageFiles)
+		protected.DELETE("/files/:id", fileHandler.DeleteFile)
+
+		// Search
+		protected.GET("/search", searchHandler.GlobalSearch)
+		protected.GET("/search/messages", searchHandler.SearchMessages)
+
+		// Bookmarks
+		protected.POST("/messages/:message_id/bookmark", bookmarkHandler.AddBookmark)
+		protected.DELETE("/messages/:message_id/bookmark", bookmarkHandler.RemoveBookmark)
+		protected.GET("/bookmarks", bookmarkHandler.GetBookmarks)
+		protected.GET("/messages/:message_id/is-bookmarked", bookmarkHandler.IsBookmarked)
+
+		// Activity
+		protected.GET("/activity", activityHandler.GetActivityFeed)
+		protected.GET("/trending", activityHandler.GetTrendingTopics)
 
 		// WebSocket
 		protected.GET("/ws", func(c *gin.Context) {
