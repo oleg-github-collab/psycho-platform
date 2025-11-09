@@ -56,7 +56,15 @@ func (h *AuthHandler) Register(c *gin.Context) {
 	err = h.db.QueryRow(`
 		INSERT INTO users (username, password_hash, display_name, role)
 		VALUES ($1, $2, $3, 'basic')
-		RETURNING id, username, display_name, avatar_url, bio, role, is_active, created_at, updated_at
+		RETURNING id,
+			username,
+			COALESCE(display_name, username),
+			COALESCE(avatar_url, ''),
+			COALESCE(bio, ''),
+			COALESCE(role, 'basic'),
+			is_active,
+			created_at,
+			updated_at
 	`, req.Username, hashedPassword, displayName).Scan(
 		&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
 		&user.Bio, &user.Role, &user.IsActive,
@@ -90,8 +98,18 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	var user models.User
 	err := h.db.QueryRow(`
-		SELECT id, username, password_hash, display_name, avatar_url, bio, role, is_active, created_at, updated_at
-		FROM users WHERE username = $1
+		SELECT id,
+			username,
+			password_hash,
+			COALESCE(display_name, username),
+			COALESCE(avatar_url, ''),
+			COALESCE(bio, ''),
+			COALESCE(role, 'basic'),
+			is_active,
+			created_at,
+			updated_at
+		FROM users
+		WHERE username = $1
 	`, req.Username).Scan(
 		&user.ID, &user.Username, &user.PasswordHash, &user.DisplayName,
 		&user.AvatarURL, &user.Bio, &user.Role,
@@ -135,8 +153,17 @@ func (h *AuthHandler) GetMe(c *gin.Context) {
 
 	var user models.User
 	err := h.db.QueryRow(`
-		SELECT id, username, display_name, avatar_url, bio, role, is_active, created_at, updated_at
-		FROM users WHERE id = $1
+		SELECT id,
+			username,
+			COALESCE(display_name, username),
+			COALESCE(avatar_url, ''),
+			COALESCE(bio, ''),
+			COALESCE(role, 'basic'),
+			is_active,
+			created_at,
+			updated_at
+		FROM users
+		WHERE id = $1
 	`, userID).Scan(
 		&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
 		&user.Bio, &user.Role, &user.IsActive,

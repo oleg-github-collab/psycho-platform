@@ -329,9 +329,16 @@ function attachEventListeners() {
       const username = document.getElementById('username').value;
       const password = document.getElementById('password').value;
       const displayName = document.getElementById('display-name')?.value || username;
+      const authError = document.getElementById('auth-error');
+
+      if (authError) authError.textContent = '';
 
       if (!username || !password) {
-        alert('Заповніть всі поля');
+        if (authError) {
+          authError.textContent = 'Заповніть логін та пароль.';
+        } else {
+          alert('Заповніть всі поля');
+        }
         return;
       }
 
@@ -345,7 +352,7 @@ function attachEventListeners() {
           body: JSON.stringify({ username, password, display_name: displayName })
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ error: 'Помилка з\'єднання' }));
         if (response.ok) {
           state.token = data.token;
           state.user = data.user;
@@ -353,10 +360,23 @@ function attachEventListeners() {
           connectWebSocket();
           render();
         } else {
-          alert('Помилка: ' + (data.error || 'Невідома помилка'));
+          const friendly =
+            response.status === 409
+              ? 'Такий логін вже зайнятий. Оберіть інший або увійдіть у свій акаунт.'
+              : data.error || 'Сталася помилка. Спробуйте пізніше.';
+          if (authError) {
+            authError.textContent = friendly;
+          } else {
+            alert('Помилка: ' + friendly);
+          }
         }
       } catch (error) {
-        alert('Помилка мережі: ' + error.message);
+        const authError = document.getElementById('auth-error');
+        if (authError) {
+          authError.textContent = 'Немає з\'єднання з сервером. Спробуйте ще раз.';
+        } else {
+          alert('Помилка мережі: ' + error.message);
+        }
       }
     });
   }
@@ -422,6 +442,7 @@ function renderAuth() {
           </div>
           <button class="btn btn-primary" style="width: 100%; margin-bottom: 1rem;" id="auth-btn">Увійти</button>
           <button class="btn btn-secondary" style="width: 100%;" id="toggle-auth">Реєстрація</button>
+          <p class="form-error" id="auth-error"></p>
         </div>
       </div>
     </div>
