@@ -26,8 +26,14 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		gin.SetMode(gin.ReleaseMode)
 	}
 
-	r := gin.Default()
+	r := gin.New()
+	r.Use(middleware.Recovery())
+	r.Use(middleware.Logger())
 	r.Use(middleware.CORS(cfg.FrontendURL))
+
+	// Rate limiting
+	rateLimiter := middleware.NewRateLimiter(redis, 60) // 60 requests per minute
+	r.Use(rateLimiter.Middleware())
 
 	// Static files
 	r.Static("/static", "./web/static")
@@ -37,10 +43,10 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		c.File("./web/index.html")
 	})
 
-	// Health check
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
-	})
+	// Health checks
+	healthHandler := handlers.NewHealthHandler(db, redis)
+	r.GET("/health", healthHandler.Check)
+	r.GET("/ready", healthHandler.Ready)
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(db, cfg)

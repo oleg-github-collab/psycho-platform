@@ -1,0 +1,339 @@
+/* Mobile-First Responsive Design */
+
+/* Base mobile styles (already applied) */
+@media (max-width: 768px) {
+  /* Navigation */
+  .navbar {
+    position: sticky;
+    top: 0;
+    margin-bottom: 1rem;
+    z-index: 100;
+  }
+
+  .nav-content {
+    flex-direction: column;
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .logo {
+    font-size: 1.25rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  .nav-links {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  .nav-link {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.85rem;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Container */
+  .container {
+    padding: 0.75rem;
+    max-width: 100%;
+  }
+
+  /* Cards */
+  .glass-card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .glass {
+    padding: 1rem;
+  }
+
+  /* Grid */
+  .grid-2,
+  .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Forms */
+  .form-input,
+  .form-label {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .form-input {
+    padding: 0.75rem;
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .btn-icon {
+    font-size: 1.25rem;
+    padding: 0.5rem;
+  }
+
+  /* Messages */
+  .message {
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .message-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .message-content {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  /* Reactions */
+  .reactions {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .reaction {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  /* Avatar */
+  .avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  /* Modal */
+  .modal {
+    padding: 0.5rem;
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    width: 100%;
+    max-height: 85vh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* Emoji picker */
+  .emoji-picker {
+    width: 100%;
+    max-height: 60vh;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* Theme toggle */
+  .theme-toggle {
+    bottom: 1rem;
+    right: 1rem;
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Conversation item */
+  .conversation-item {
+    padding: 0.75rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  /* Typography */
+  h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  h2 {
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+  }
+
+  /* Prevent horizontal scroll */
+  body {
+    overflow-x: hidden;
+  }
+
+  .container {
+    overflow-x: hidden;
+  }
+
+  /* Touch targets */
+  a, button, .btn, .nav-link {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Remove hover effects on touch devices */
+  @media (hover: none) {
+    .glass-card:hover,
+    .btn:hover,
+    .nav-link:hover {
+      transform: none;
+    }
+  }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .nav-links {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .nav-link {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+  }
+
+  .logo {
+    font-size: 1.1rem;
+  }
+
+  .container {
+    padding: 0.5rem;
+  }
+
+  .glass-card {
+    padding: 0.75rem;
+  }
+
+  h1 {
+    font-size: 1.25rem;
+  }
+}
+
+/* Landscape mode */
+@media (max-height: 500px) and (orientation: landscape) {
+  .navbar {
+    position: relative;
+  }
+
+  .modal-content {
+    max-height: 90vh;
+  }
+
+  .emoji-picker {
+    max-height: 80vh;
+  }
+}
+
+/* Prevent iOS zoom on input focus */
+@supports (-webkit-touch-callout: none) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Safe area for notch devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+
+  .navbar {
+    padding-top: max(0px, env(safe-area-inset-top));
+  }
+
+  .theme-toggle {
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Loading spinner mobile */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+/* Badge mobile */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}
+
+/* Unread count mobile */
+.unread-count {
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+}
+
+/* Fix text selection on mobile */
+.message-content,
+.glass-card p {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Improve tap targets */
+.message-header button,
+.btn-icon {
+  padding: 0.5rem;
+  margin: 0.25rem;
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Markdown mobile */
+.markdown-toolbar {
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.5rem;
+}
+
+.markdown-btn {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+/* Activity feed mobile */
+.conversation-item,
+.activity-item {
+  border-radius: 12px;
+}
+
+/* Prevent double-tap zoom */
+* {
+  touch-action: manipulation;
+}
+
+/* Better scrolling on iOS */
+.modal-content,
+.emoji-picker,
+.message-container {
+  -webkit-overflow-scrolling: touch;
+}
