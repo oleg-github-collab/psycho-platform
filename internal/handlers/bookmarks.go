@@ -17,7 +17,7 @@ func NewBookmarkHandler(db *sql.DB) *BookmarkHandler {
 
 func (h *BookmarkHandler) AddBookmark(c *gin.Context) {
 	userID := c.GetString("user_id")
-	messageID := c.Param("message_id")
+	messageID := c.Param("id")
 
 	_, err := h.db.Exec(`
 		INSERT INTO message_bookmarks (user_id, message_id)
@@ -35,7 +35,7 @@ func (h *BookmarkHandler) AddBookmark(c *gin.Context) {
 
 func (h *BookmarkHandler) RemoveBookmark(c *gin.Context) {
 	userID := c.GetString("user_id")
-	messageID := c.Param("message_id")
+	messageID := c.Param("id")
 
 	_, err := h.db.Exec(`
 		DELETE FROM message_bookmarks
@@ -101,7 +101,7 @@ func (h *BookmarkHandler) GetBookmarks(c *gin.Context) {
 
 func (h *BookmarkHandler) IsBookmarked(c *gin.Context) {
 	userID := c.GetString("user_id")
-	messageID := c.Param("message_id")
+	messageID := c.Param("id")
 
 	var exists bool
 	err := h.db.QueryRow(`

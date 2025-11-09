@@ -142,8 +142,8 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 
 		// Files
 		protected.POST("/upload", fileHandler.UploadFile)
-		protected.POST("/messages/:message_id/attach", fileHandler.AttachToMessage)
-		protected.GET("/messages/:message_id/files", fileHandler.GetMessageFiles)
+		protected.POST("/messages/:id/attach", fileHandler.AttachToMessage)
+		protected.GET("/messages/:id/files", fileHandler.GetMessageFiles)
 		protected.DELETE("/files/:id", fileHandler.DeleteFile)
 
 		// Search
@@ -151,10 +151,10 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		protected.GET("/search/messages", searchHandler.SearchMessages)
 
 		// Bookmarks
-		protected.POST("/messages/:message_id/bookmark", bookmarkHandler.AddBookmark)
-		protected.DELETE("/messages/:message_id/bookmark", bookmarkHandler.RemoveBookmark)
+		protected.POST("/messages/:id/bookmark", bookmarkHandler.AddBookmark)
+		protected.DELETE("/messages/:id/bookmark", bookmarkHandler.RemoveBookmark)
 		protected.GET("/bookmarks", bookmarkHandler.GetBookmarks)
-		protected.GET("/messages/:message_id/is-bookmarked", bookmarkHandler.IsBookmarked)
+		protected.GET("/messages/:id/is-bookmarked", bookmarkHandler.IsBookmarked)
 
 		// Activity
 		protected.GET("/activity", activityHandler.GetActivityFeed)

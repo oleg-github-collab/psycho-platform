@@ -106,7 +106,7 @@ func (h *FileHandler) UploadFile(c *gin.Context) {
 }
 
 func (h *FileHandler) AttachToMessage(c *gin.Context) {
-	messageID := c.Param("message_id")
+	messageID := c.Param("id")
 	var req struct {
 		FileID string `json:"file_id" binding:"required"`
 	}
@@ -131,7 +131,7 @@ func (h *FileHandler) AttachToMessage(c *gin.Context) {
 }
 
 func (h *FileHandler) GetMessageFiles(c *gin.Context) {
-	messageID := c.Param("message_id")
+	messageID := c.Param("id")
 
 	rows, err := h.db.Query(`
 		SELECT id, filename, original_name, file_type, file_size, file_url, created_at
