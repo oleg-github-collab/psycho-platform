@@ -135,6 +135,8 @@ body::before {
   transition: all 0.3s;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  min-width: 120px;
+  text-align: center;
 }
 
 .btn-primary {
@@ -145,7 +147,6 @@ body::before {
 
 .btn-primary:hover {
   background: var(--primary-dark);
-  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
 }
 

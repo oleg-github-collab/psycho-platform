@@ -298,7 +298,7 @@ function attachEventListeners() {
 
       try {
         const endpoint = toggleAuth && toggleAuth.textContent === 'Увійти' ? '/auth/register' : '/auth/login';
-        const response = await fetch(`${API_BASE}${endpoint}`, {
+        const response = await fetch(`${API_URL}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, password, display_name: username })
@@ -312,10 +312,10 @@ function attachEventListeners() {
           connectWebSocket();
           render();
         } else {
-          alert(data.error || 'Authentication failed');
+          alert(data.error || 'Помилка: ' + data.error);
         }
       } catch (error) {
-        alert('Network error: ' + error.message);
+        alert('Помилка мережі: ' + error.message);
       }
     });
   }
