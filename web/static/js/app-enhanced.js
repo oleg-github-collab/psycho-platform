@@ -28,6 +28,34 @@ const state = {
   ws: null,
 };
 
+const ROLE_META = {
+  super_admin: { label: 'Суперадмін', icon: '👑', color: '#6366f1' },
+  premium: { label: 'Преміум', icon: '⭐️', color: '#f97316' },
+  basic: { label: 'Базовий', icon: '👤', color: 'rgba(255,255,255,0.1)' },
+};
+
+function getRoleMeta(role) {
+  return ROLE_META[role] || ROLE_META.basic;
+}
+
+function renderRoleBadge(role) {
+  const meta = getRoleMeta(role);
+  return `
+    <span style="
+      background: ${meta.color};
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      margin-left: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+    ">
+      ${meta.icon} ${meta.label}
+    </span>
+  `;
+}
+
 // API helpers
 async function apiCall(endpoint, options = {}) {
   const headers = {
@@ -362,7 +390,7 @@ function renderNavbar() {
           <li><a href="#" class="nav-link ${state.currentView === 'groups' ? 'active' : ''}" data-view="groups">👥 Групи</a></li>
           <li><a href="#" class="nav-link ${state.currentView === 'sessions' ? 'active' : ''}" data-view="sessions">🎥 Вебінари</a></li>
           <li><a href="#" class="nav-link ${state.currentView === 'users' ? 'active' : ''}" data-view="users">👤 Користувачі</a></li>
-          ${state.user?.role === 'admin' ? `<li><a href="#" class="nav-link ${state.currentView === 'admin' ? 'active' : ''}" data-view="admin">🔧 Адмін</a></li>` : ''}
+          ${state.user?.role === 'super_admin' ? `<li><a href="#" class="nav-link ${state.currentView === 'admin' ? 'active' : ''}" data-view="admin">🔧 Адмін</a></li>` : ''}
           <li><a href="#" class="nav-link ${state.currentView === 'profile' ? 'active' : ''}" data-view="profile">⚙️ Профіль</a></li>
         </ul>
         <div style="display: flex; align-items: center; gap: 1rem;">
@@ -459,7 +487,7 @@ function renderUsers() {
               </div>
             </div>
             ${user.bio ? `<p style="color: var(--text-secondary); margin-bottom: 1rem;">${user.bio}</p>` : ''}
-            ${user.is_psychologist ? '<span class="badge badge-success">Психолог</span>' : ''}
+            ${renderRoleBadge(user.role)}
             <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="startConversation('${user.id}')">💬 Написати</button>
           </div>
         `).join('') || '<p>Поки немає користувачів</p>'}
@@ -548,9 +576,29 @@ function renderAdmin() {
           <div style="color: var(--text-secondary);">Повідомлень</div>
         </div>
         <div class="glass" style="padding: 1.5rem; text-align: center;">
-          <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">🏘️</div>
           <div style="font-size: 1.5rem; font-weight: bold;" id="admin-groups-count">-</div>
           <div style="color: var(--text-secondary);">Груп</div>
+        </div>
+        <div class="glass" style="padding: 1.5rem; text-align: center;">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">🎥</div>
+          <div style="font-size: 1.5rem; font-weight: bold;" id="admin-sessions-count">-</div>
+          <div style="color: var(--text-secondary);">Сесій</div>
+        </div>
+      </div>
+
+      <div class="glass" style="padding: 1.5rem; margin-bottom: 2rem;">
+        <h2 style="margin-bottom: 1rem;">⚖️ Розподіл ролей</h2>
+        <div style="display: flex; flex-wrap: wrap; gap: 1rem;">
+          <div class="badge" style="background: ${ROLE_META.super_admin.color}; color: #fff;">
+            ${ROLE_META.super_admin.icon} Суперадмінів: <span id="admin-super-count">-</span>
+          </div>
+          <div class="badge" style="background: ${ROLE_META.premium.color}; color: #fff;">
+            ${ROLE_META.premium.icon} Преміум: <span id="admin-premium-count">-</span>
+          </div>
+          <div class="badge" style="background: ${ROLE_META.basic.color}; color: #fff;">
+            ${ROLE_META.basic.icon} Базових: <span id="admin-basic-count">-</span>
+          </div>
         </div>
       </div>
 
@@ -563,35 +611,48 @@ function renderAdmin() {
 async function loadAdminData() {
   try {
     const stats = await apiCall('/admin/stats');
-    document.getElementById('admin-users-count').textContent = stats.users_count || 0;
-    document.getElementById('admin-topics-count').textContent = stats.topics_count || 0;
-    document.getElementById('admin-messages-count').textContent = stats.messages_count || 0;
-    document.getElementById('admin-groups-count').textContent = stats.groups_count || 0;
+    const setStat = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value ?? 0;
+    };
+
+    setStat('admin-users-count', stats.total_users);
+    setStat('admin-topics-count', stats.total_topics);
+    setStat('admin-messages-count', stats.total_messages);
+    setStat('admin-groups-count', stats.total_groups);
+    setStat('admin-sessions-count', stats.total_sessions);
+    setStat('admin-super-count', stats.total_super_admins);
+    setStat('admin-premium-count', stats.total_premium_users);
+    setStat('admin-basic-count', stats.total_basic_users);
 
     const users = await apiCall('/admin/users');
     const usersList = document.getElementById('admin-users-list');
+    if (!usersList) return;
+
     usersList.innerHTML = users.map(user => `
-      <div class="glass" style="padding: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;">
+      <div class="glass" style="padding: 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; gap: 1rem; align-items: center;">
         <div>
           <div style="font-weight: bold;">${user.display_name || user.username}</div>
           <div style="color: var(--text-secondary); font-size: 0.9rem;">@${user.username}</div>
-          <div style="margin-top: 0.5rem;">
-            <span style="background: ${user.role === 'admin' ? 'var(--primary)' : 'rgba(255,255,255,0.1)'}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem;">
-              ${user.role === 'admin' ? '👑 Адмін' : '👤 Користувач'}
-            </span>
-            ${user.is_psychologist ? '<span style="background: var(--accent); padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; margin-left: 0.5rem;">🧠 Психолог</span>' : ''}
-            <span style="background: ${user.is_active ? '#10b981' : '#ef4444'}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; margin-left: 0.5rem;">
+          <div style="margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">
+            ${renderRoleBadge(user.role)}
+            <span style="background: ${user.is_active ? '#10b981' : '#ef4444'}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem;">
               ${user.is_active ? '✓ Активний' : '✗ Неактивний'}
             </span>
           </div>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
+        <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end;">
           <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="toggleUserStatus('${user.id}', ${!user.is_active})">
             ${user.is_active ? 'Деактивувати' : 'Активувати'}
           </button>
-          <button class="btn btn-primary" style="padding: 0.5rem 1rem;" onclick="togglePsychologist('${user.id}', ${!user.is_psychologist})">
-            ${user.is_psychologist ? 'Забрати психолога' : 'Зробити психологом'}
-          </button>
+          <label style="display: flex; flex-direction: column; font-size: 0.85rem; color: var(--text-secondary);">
+            Роль
+            <select class="form-input" onchange="updateUserRole('${user.id}', this.value)" style="min-width: 140px;">
+              <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>👑 Суперадмін</option>
+              <option value="premium" ${user.role === 'premium' ? 'selected' : ''}>⭐️ Преміум</option>
+              <option value="basic" ${user.role === 'basic' ? 'selected' : ''}>👤 Базовий</option>
+            </select>
+          </label>
         </div>
       </div>
     `).join('');
@@ -602,9 +663,8 @@ async function loadAdminData() {
 
 async function toggleUserStatus(userId, activate) {
   try {
-    await apiCall(`/admin/users/${userId}/status`, {
+    await apiCall(`/admin/users/${userId}/status?action=${activate ? 'activate' : 'deactivate'}`, {
       method: 'PATCH',
-      body: JSON.stringify({ is_active: activate })
     });
     loadAdminData();
   } catch (error) {
@@ -612,11 +672,11 @@ async function toggleUserStatus(userId, activate) {
   }
 }
 
-async function togglePsychologist(userId, isPsychologist) {
+async function updateUserRole(userId, role) {
   try {
-    await apiCall(`/admin/users/${userId}/psychologist`, {
+    await apiCall(`/admin/users/${userId}/role`, {
       method: 'PATCH',
-      body: JSON.stringify({ is_psychologist: isPsychologist })
+      body: JSON.stringify({ role }),
     });
     loadAdminData();
   } catch (error) {
@@ -643,7 +703,7 @@ if (state.token) {
 // Export functions to window for onclick handlers
 window.logout = logout;
 window.toggleUserStatus = toggleUserStatus;
-window.togglePsychologist = togglePsychologist;
+window.updateUserRole = updateUserRole;
 window.voteTopic = (id, type) => apiCall(`/topics/${id}/vote?type=${type}`, { method: 'POST' }).then(fetchTopics);
 window.openTopic = (id) => {
   state.currentTopic = id;

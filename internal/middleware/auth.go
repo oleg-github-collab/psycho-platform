@@ -40,20 +40,8 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 func AdminOnly() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("user_role")
-		if !exists || role != "admin" {
+		if !exists || role != "super_admin" {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Admin access required"})
-			c.Abort()
-			return
-		}
-		c.Next()
-	}
-}
-
-func PsychologistOnly() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		role, exists := c.Get("user_role")
-		if !exists || (role != "admin" && role != "psychologist") {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Psychologist access required"})
 			c.Abort()
 			return
 		}

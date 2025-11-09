@@ -118,26 +118,29 @@ func (h *SearchHandler) GlobalSearch(c *gin.Context) {
 
 	// Search users
 	userRows, _ := h.db.Query(`
-		SELECT id, username, display_name, bio, is_psychologist
+		SELECT id, username, display_name, bio, role
 		FROM users
 		WHERE (username ILIKE '%' || $1 || '%' OR display_name ILIKE '%' || $1 || '%' OR bio ILIKE '%' || $1 || '%')
 		  AND is_active = true
-		ORDER BY is_psychologist DESC
+		ORDER BY CASE
+			WHEN role = 'super_admin' THEN 0
+			WHEN role = 'premium' THEN 1
+			ELSE 2
+		END, display_name ASC
 		LIMIT $2
 	`, query, limit)
 
 	if userRows != nil {
 		defer userRows.Close()
 		for userRows.Next() {
-			var id, username, displayName, bio string
-			var isPsychologist bool
-			userRows.Scan(&id, &username, &displayName, &bio, &isPsychologist)
+			var id, username, displayName, bio, role string
+			userRows.Scan(&id, &username, &displayName, &bio, &role)
 			results.Users = append(results.Users, map[string]interface{}{
-				"id":              id,
-				"username":        username,
-				"display_name":    displayName,
-				"bio":             bio,
-				"is_psychologist": isPsychologist,
+				"id":           id,
+				"username":     username,
+				"display_name": displayName,
+				"bio":          bio,
+				"role":         role,
 			})
 		}
 	}

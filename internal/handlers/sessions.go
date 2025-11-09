@@ -43,12 +43,12 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 
 	var session models.Session
 	err := h.db.QueryRow(`
-		INSERT INTO sessions (title, description, session_type, psychologist_id, max_participants, scheduled_at, duration_minutes, is_private, status)
+		INSERT INTO sessions (title, description, session_type, host_id, max_participants, scheduled_at, duration_minutes, is_private, status)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'scheduled')
-		RETURNING id, title, description, session_type, hms_room_id, hms_room_code, psychologist_id, max_participants, scheduled_at, duration_minutes, is_private, status, created_at, updated_at
+		RETURNING id, title, description, session_type, hms_room_id, hms_room_code, host_id, max_participants, scheduled_at, duration_minutes, is_private, status, created_at, updated_at
 	`, req.Title, req.Description, sessionType, userID, maxParticipants, req.ScheduledAt, durationMinutes, req.IsPrivate).Scan(
 		&session.ID, &session.Title, &session.Description, &session.SessionType,
-		&session.HMSRoomID, &session.HMSRoomCode, &session.PsychologistID,
+		&session.HMSRoomID, &session.HMSRoomCode, &session.HostID,
 		&session.MaxParticipants, &session.ScheduledAt, &session.DurationMinutes,
 		&session.IsPrivate, &session.Status, &session.CreatedAt, &session.UpdatedAt,
 	)
@@ -68,12 +68,12 @@ func (h *SessionHandler) CreateSession(c *gin.Context) {
 func (h *SessionHandler) GetSessions(c *gin.Context) {
 	query := `
 		SELECT s.id, s.title, s.description, s.session_type, s.hms_room_id, s.hms_room_code,
-		       s.psychologist_id, s.max_participants, s.scheduled_at, s.duration_minutes,
+		       s.host_id, s.max_participants, s.scheduled_at, s.duration_minutes,
 		       s.is_private, s.status, s.created_at, s.updated_at,
 		       u.username, u.display_name, u.avatar_url
 		FROM sessions s
-		JOIN users u ON s.psychologist_id = u.id
-		WHERE s.status != 'cancelled' AND (s.is_private = false OR s.psychologist_id = $1)
+		JOIN users u ON s.host_id = u.id
+		WHERE s.status != 'cancelled' AND (s.is_private = false OR s.host_id = $1)
 		ORDER BY s.scheduled_at ASC
 	`
 
@@ -88,19 +88,19 @@ func (h *SessionHandler) GetSessions(c *gin.Context) {
 	sessions := []models.Session{}
 	for rows.Next() {
 		var session models.Session
-		var psychologist models.User
+		var host models.User
 		err := rows.Scan(
 			&session.ID, &session.Title, &session.Description, &session.SessionType,
-			&session.HMSRoomID, &session.HMSRoomCode, &session.PsychologistID,
+			&session.HMSRoomID, &session.HMSRoomCode, &session.HostID,
 			&session.MaxParticipants, &session.ScheduledAt, &session.DurationMinutes,
 			&session.IsPrivate, &session.Status, &session.CreatedAt, &session.UpdatedAt,
-			&psychologist.Username, &psychologist.DisplayName, &psychologist.AvatarURL,
+			&host.Username, &host.DisplayName, &host.AvatarURL,
 		)
 		if err != nil {
 			continue
 		}
-		psychologist.ID = session.PsychologistID
-		session.Psychologist = &psychologist
+		host.ID = session.HostID
+		session.Host = &host
 		sessions = append(sessions, session)
 	}
 

@@ -17,8 +17,7 @@ func RunMigrations(db *sql.DB) error {
 			avatar_url TEXT,
 			bio TEXT,
 			status VARCHAR(100),
-			role VARCHAR(20) DEFAULT 'user',
-			is_psychologist BOOLEAN DEFAULT FALSE,
+			role VARCHAR(20) DEFAULT 'basic',
 			is_active BOOLEAN DEFAULT TRUE,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -97,7 +96,7 @@ func RunMigrations(db *sql.DB) error {
 			session_type VARCHAR(20) DEFAULT 'webinar',
 			hms_room_id VARCHAR(255),
 			hms_room_code VARCHAR(255),
-			psychologist_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			host_id UUID REFERENCES users(id) ON DELETE CASCADE,
 			max_participants INT DEFAULT 50,
 			scheduled_at TIMESTAMP NOT NULL,
 			duration_minutes INT DEFAULT 60,
@@ -118,7 +117,7 @@ func RunMigrations(db *sql.DB) error {
 
 		`CREATE TABLE IF NOT EXISTS appointments (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			psychologist_id UUID REFERENCES users(id) ON DELETE CASCADE,
+			provider_id UUID REFERENCES users(id) ON DELETE CASCADE,
 			client_id UUID REFERENCES users(id) ON DELETE CASCADE,
 			title VARCHAR(255),
 			description TEXT,
@@ -246,8 +245,8 @@ func RunMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_messages_parent ON messages(parent_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_reactions_message ON reactions(message_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_topic_votes_topic ON topic_votes(topic_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_sessions_psychologist ON sessions(psychologist_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_appointments_psychologist ON appointments(psychologist_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_sessions_host ON sessions(host_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_appointments_provider ON appointments(provider_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_appointments_client ON appointments(client_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_user_blocks_user ON user_blocks(user_id)`,
@@ -260,6 +259,27 @@ func RunMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_activity_feed_user ON activity_feed(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_group_invitations_code ON group_invitations(invitation_code)`,
 		`CREATE INDEX IF NOT EXISTS idx_topics_pinned ON topics(is_pinned, pinned_at)`,
+
+		`ALTER TABLE users DROP COLUMN IF EXISTS is_psychologist`,
+		`ALTER TABLE users ALTER COLUMN role SET DEFAULT 'basic'`,
+		`DO $$ BEGIN
+			IF EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'sessions' AND column_name = 'psychologist_id'
+			) THEN
+				ALTER TABLE sessions RENAME COLUMN psychologist_id TO host_id;
+			END IF;
+		END $$`,
+		`DO $$ BEGIN
+			IF EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'appointments' AND column_name = 'psychologist_id'
+			) THEN
+				ALTER TABLE appointments RENAME COLUMN psychologist_id TO provider_id;
+			END IF;
+		END $$`,
+		`DROP INDEX IF EXISTS idx_sessions_psychologist`,
+		`DROP INDEX IF EXISTS idx_appointments_psychologist`,
 	}
 
 	for _, migration := range migrations {
@@ -299,7 +319,7 @@ func createSuperAdmin(db *sql.DB) error {
 	// Create superadmin
 	_, err = db.Exec(`
 		INSERT INTO users (username, password_hash, display_name, role, is_active)
-		VALUES ($1, $2, $3, 'admin', true)
+		VALUES ($1, $2, $3, 'super_admin', true)
 	`, "Oleh", hashedPassword, "Oleh (Superadmin)")
 
 	if err != nil {

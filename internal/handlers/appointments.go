@@ -31,11 +31,11 @@ func (h *AppointmentHandler) CreateAppointment(c *gin.Context) {
 
 	var appointment models.Appointment
 	err := h.db.QueryRow(`
-		INSERT INTO appointments (psychologist_id, client_id, title, description, scheduled_at, duration_minutes, status)
+		INSERT INTO appointments (provider_id, client_id, title, description, scheduled_at, duration_minutes, status)
 		VALUES ($1, $2, $3, $4, $5, $6, 'pending')
-		RETURNING id, psychologist_id, client_id, title, description, scheduled_at, duration_minutes, status, notes, created_at, updated_at
-	`, req.PsychologistID, userID, req.Title, req.Description, req.ScheduledAt, durationMinutes).Scan(
-		&appointment.ID, &appointment.PsychologistID, &appointment.ClientID,
+		RETURNING id, provider_id, client_id, title, description, scheduled_at, duration_minutes, status, notes, created_at, updated_at
+	`, req.ProviderID, userID, req.Title, req.Description, req.ScheduledAt, durationMinutes).Scan(
+		&appointment.ID, &appointment.ProviderID, &appointment.ClientID,
 		&appointment.Title, &appointment.Description, &appointment.ScheduledAt,
 		&appointment.DurationMinutes, &appointment.Status, &appointment.Notes,
 		&appointment.CreatedAt, &appointment.UpdatedAt,
@@ -53,14 +53,14 @@ func (h *AppointmentHandler) GetAppointments(c *gin.Context) {
 	userID := c.GetString("user_id")
 
 	query := `
-		SELECT a.id, a.psychologist_id, a.client_id, a.title, a.description,
+		SELECT a.id, a.provider_id, a.client_id, a.title, a.description,
 		       a.scheduled_at, a.duration_minutes, a.status, a.notes, a.created_at, a.updated_at,
 		       p.username as p_username, p.display_name as p_display_name, p.avatar_url as p_avatar,
 		       cl.username as c_username, cl.display_name as c_display_name, cl.avatar_url as c_avatar
 		FROM appointments a
-		JOIN users p ON a.psychologist_id = p.id
+		JOIN users p ON a.provider_id = p.id
 		JOIN users cl ON a.client_id = cl.id
-		WHERE a.psychologist_id = $1 OR a.client_id = $1
+		WHERE a.provider_id = $1 OR a.client_id = $1
 		ORDER BY a.scheduled_at ASC
 	`
 
@@ -74,20 +74,20 @@ func (h *AppointmentHandler) GetAppointments(c *gin.Context) {
 	appointments := []models.Appointment{}
 	for rows.Next() {
 		var apt models.Appointment
-		var psychologist, client models.User
+		var provider, client models.User
 		err := rows.Scan(
-			&apt.ID, &apt.PsychologistID, &apt.ClientID, &apt.Title, &apt.Description,
+			&apt.ID, &apt.ProviderID, &apt.ClientID, &apt.Title, &apt.Description,
 			&apt.ScheduledAt, &apt.DurationMinutes, &apt.Status, &apt.Notes,
 			&apt.CreatedAt, &apt.UpdatedAt,
-			&psychologist.Username, &psychologist.DisplayName, &psychologist.AvatarURL,
+			&provider.Username, &provider.DisplayName, &provider.AvatarURL,
 			&client.Username, &client.DisplayName, &client.AvatarURL,
 		)
 		if err != nil {
 			continue
 		}
-		psychologist.ID = apt.PsychologistID
+		provider.ID = apt.ProviderID
 		client.ID = apt.ClientID
-		apt.Psychologist = &psychologist
+		apt.Provider = &provider
 		apt.Client = &client
 		appointments = append(appointments, apt)
 	}

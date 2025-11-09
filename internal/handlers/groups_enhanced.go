@@ -18,8 +18,8 @@ func (h *GroupHandler) PinTopic(c *gin.Context) {
 
 	// Check if user is admin
 	role := c.GetString("user_role")
-	if role != "admin" && role != "psychologist" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can pin topics"})
+	if role != "super_admin" && role != "premium" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only elevated users can pin topics"})
 		return
 	}
 
@@ -41,8 +41,8 @@ func (h *GroupHandler) UnpinTopic(c *gin.Context) {
 	topicID := c.Param("id")
 
 	role := c.GetString("user_role")
-	if role != "admin" && role != "psychologist" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "Only admins can unpin topics"})
+	if role != "super_admin" && role != "premium" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "Only elevated users can unpin topics"})
 		return
 	}
 
@@ -71,7 +71,7 @@ func (h *GroupHandler) CreateInvitation(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		req.ExpiresIn = 24 * 7 // 7 days default
-		req.MaxUses = 0         // unlimited
+		req.MaxUses = 0        // unlimited
 	}
 
 	// Check if user is admin/moderator of the group

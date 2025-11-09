@@ -9,8 +9,8 @@ type Session struct {
 	SessionType     string    `json:"session_type"`
 	HMSRoomID       string    `json:"hms_room_id,omitempty"`
 	HMSRoomCode     string    `json:"hms_room_code,omitempty"`
-	PsychologistID  string    `json:"psychologist_id"`
-	Psychologist    *User     `json:"psychologist,omitempty"`
+	HostID          string    `json:"host_id"`
+	Host            *User     `json:"host,omitempty"`
 	MaxParticipants int       `json:"max_participants"`
 	ScheduledAt     time.Time `json:"scheduled_at"`
 	DurationMinutes int       `json:"duration_minutes"`
@@ -31,23 +31,23 @@ type CreateSessionRequest struct {
 }
 
 type Appointment struct {
-	ID              string     `json:"id"`
-	PsychologistID  string     `json:"psychologist_id"`
-	Psychologist    *User      `json:"psychologist,omitempty"`
-	ClientID        string     `json:"client_id"`
-	Client          *User      `json:"client,omitempty"`
-	Title           string     `json:"title"`
-	Description     string     `json:"description"`
-	ScheduledAt     time.Time  `json:"scheduled_at"`
-	DurationMinutes int        `json:"duration_minutes"`
-	Status          string     `json:"status"`
-	Notes           string     `json:"notes"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              string    `json:"id"`
+	ProviderID      string    `json:"provider_id"`
+	Provider        *User     `json:"provider,omitempty"`
+	ClientID        string    `json:"client_id"`
+	Client          *User     `json:"client,omitempty"`
+	Title           string    `json:"title"`
+	Description     string    `json:"description"`
+	ScheduledAt     time.Time `json:"scheduled_at"`
+	DurationMinutes int       `json:"duration_minutes"`
+	Status          string    `json:"status"`
+	Notes           string    `json:"notes"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 type CreateAppointmentRequest struct {
-	PsychologistID  string    `json:"psychologist_id" binding:"required"`
+	ProviderID      string    `json:"provider_id" binding:"required"`
 	Title           string    `json:"title"`
 	Description     string    `json:"description"`
 	ScheduledAt     time.Time `json:"scheduled_at" binding:"required"`

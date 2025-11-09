@@ -179,7 +179,7 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 		admin.GET("/stats", adminHandler.GetStats)
 		admin.GET("/users", adminHandler.GetUsers)
 		admin.PATCH("/users/:id/status", adminHandler.ToggleUserStatus)
-		admin.PATCH("/users/:id/psychologist", adminHandler.SetPsychologist)
+		admin.PATCH("/users/:id/role", adminHandler.UpdateUserRole)
 	}
 
 	return r

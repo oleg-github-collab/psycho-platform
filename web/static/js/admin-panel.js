@@ -1,6 +1,26 @@
 // Comprehensive Admin Panel
 import { apiCall } from './app-enhanced.js';
 
+const ROLE_ORDER = ['super_admin', 'premium', 'basic'];
+const ROLE_DETAILS = {
+  super_admin: { label: 'Суперадмін', icon: '👑', color: '#6366f1' },
+  premium: { label: 'Преміум', icon: '⭐️', color: '#f97316' },
+  basic: { label: 'Базовий', icon: '👤', color: 'rgba(255,255,255,0.2)' },
+};
+
+const getRoleDetail = (role) => ROLE_DETAILS[role] || ROLE_DETAILS.basic;
+
+const renderRoleBadge = (role) => {
+  const detail = getRoleDetail(role);
+  return `<span class="badge" style="background: ${detail.color}; color: #fff;">${detail.icon} ${detail.label}</span>`;
+};
+
+const renderRoleOptions = (selectedRole) =>
+  ROLE_ORDER.map(role => {
+    const detail = getRoleDetail(role);
+    return `<option value="${role}" ${selectedRole === role ? 'selected' : ''}>${detail.icon} ${detail.label}</option>`;
+  }).join('');
+
 export class AdminPanel {
   constructor() {
     this.stats = null;
@@ -137,9 +157,21 @@ export class AdminPanel {
         </div>
 
         <div class="stat-card glass-card">
-          <div class="stat-icon">🧠</div>
-          <div class="stat-value">${this.stats.total_psychologists || 0}</div>
-          <div class="stat-label">Психологів</div>
+          <div class="stat-icon">👑</div>
+          <div class="stat-value">${this.stats.total_super_admins || 0}</div>
+          <div class="stat-label">Суперадмінів</div>
+        </div>
+
+        <div class="stat-card glass-card">
+          <div class="stat-icon">⭐</div>
+          <div class="stat-value">${this.stats.total_premium_users || 0}</div>
+          <div class="stat-label">Преміум</div>
+        </div>
+
+        <div class="stat-card glass-card">
+          <div class="stat-icon">👤</div>
+          <div class="stat-value">${this.stats.total_basic_users || 0}</div>
+          <div class="stat-label">Базових</div>
         </div>
       </div>
 
@@ -180,7 +212,6 @@ export class AdminPanel {
               <th>ID</th>
               <th>Користувач</th>
               <th>Роль</th>
-              <th>Психолог</th>
               <th>Статус</th>
               <th>Дата реєстрації</th>
               <th>Дії</th>
@@ -201,8 +232,7 @@ export class AdminPanel {
                     </div>
                   </div>
                 </td>
-                <td><span class="badge">${user.role}</span></td>
-                <td>${user.is_psychologist ? '✅' : '❌'}</td>
+                <td>${renderRoleBadge(user.role)}</td>
                 <td>
                   <span class="badge ${user.is_active ? 'badge-success' : 'badge-warning'}">
                     ${user.is_active ? 'Активний' : 'Деактивований'}
@@ -210,15 +240,15 @@ export class AdminPanel {
                 </td>
                 <td>${new Date(user.created_at).toLocaleDateString('uk-UA')}</td>
                 <td>
-                  <div style="display: flex; gap: 0.25rem;">
+                  <div style="display: flex; gap: 0.25rem; align-items: center;">
                     <button class="btn-icon" onclick="adminPanel.toggleUserStatus('${user.id}', ${!user.is_active})"
                             title="${user.is_active ? 'Деактивувати' : 'Активувати'}">
                       ${user.is_active ? '🔒' : '🔓'}
                     </button>
-                    <button class="btn-icon" onclick="adminPanel.togglePsychologist('${user.id}', ${!user.is_psychologist})"
-                            title="${user.is_psychologist ? 'Забрати статус психолога' : 'Надати статус психолога'}">
-                      ${user.is_psychologist ? '👨‍⚕️' : '➕'}
-                    </button>
+                    <select class="form-input" style="padding: 0.15rem 0.35rem; font-size: 0.85rem;"
+                            onchange="adminPanel.updateUserRole('${user.id}', this.value)">
+                      ${renderRoleOptions(user.role)}
+                    </select>
                     <button class="btn-icon" onclick="adminPanel.viewUserDetails('${user.id}')" title="Детальніше">
                       👁️
                     </button>
@@ -251,10 +281,11 @@ export class AdminPanel {
     }
   }
 
-  async togglePsychologist(userId, enable) {
+  async updateUserRole(userId, role) {
     try {
-      await apiCall(`/admin/users/${userId}/psychologist?value=${enable}`, {
+      await apiCall(`/admin/users/${userId}/role`, {
         method: 'PATCH',
+        body: JSON.stringify({ role }),
       });
       await this.renderUsers(document.getElementById('admin-view-content'));
     } catch (error) {

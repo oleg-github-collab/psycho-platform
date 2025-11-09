@@ -52,21 +52,20 @@ func (h *ProfileHandler) GetUserProfile(c *gin.Context) {
 	userID := c.Param("id")
 
 	var user struct {
-		ID             string `json:"id"`
-		Username       string `json:"username"`
-		DisplayName    string `json:"display_name"`
-		AvatarURL      string `json:"avatar_url"`
-		Bio            string `json:"bio"`
-		Status         string `json:"status"`
-		Role           string `json:"role"`
-		IsPsychologist bool   `json:"is_psychologist"`
-		IsOnline       bool   `json:"is_online"`
-		LastSeen       string `json:"last_seen"`
+		ID          string `json:"id"`
+		Username    string `json:"username"`
+		DisplayName string `json:"display_name"`
+		AvatarURL   string `json:"avatar_url"`
+		Bio         string `json:"bio"`
+		Status      string `json:"status"`
+		Role        string `json:"role"`
+		IsOnline    bool   `json:"is_online"`
+		LastSeen    string `json:"last_seen"`
 	}
 
 	err := h.db.QueryRow(`
 		SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio,
-		       COALESCE(u.status, '') as status, u.role, u.is_psychologist,
+		       COALESCE(u.status, '') as status, u.role,
 		       COALESCE(us.is_online, false) as is_online,
 		       COALESCE(us.last_seen::text, '') as last_seen
 		FROM users u
@@ -74,7 +73,7 @@ func (h *ProfileHandler) GetUserProfile(c *gin.Context) {
 		WHERE u.id = $1 AND u.is_active = true
 	`, userID).Scan(
 		&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
-		&user.Bio, &user.Status, &user.Role, &user.IsPsychologist,
+		&user.Bio, &user.Status, &user.Role,
 		&user.IsOnline, &user.LastSeen,
 	)
 
@@ -93,23 +92,21 @@ func (h *ProfileHandler) GetUserProfile(c *gin.Context) {
 
 func (h *ProfileHandler) SearchUsers(c *gin.Context) {
 	query := c.Query("q")
-	psychologistsOnly := c.Query("psychologists") == "true"
 	limit := c.DefaultQuery("limit", "20")
 
 	sqlQuery := `
 		SELECT u.id, u.username, u.display_name, u.avatar_url, u.bio,
-		       u.role, u.is_psychologist,
+		       u.role,
 		       COALESCE(us.is_online, false) as is_online
 		FROM users u
 		LEFT JOIN user_status us ON u.id = us.user_id
 		WHERE u.is_active = true
 		  AND ($1 = '' OR u.username ILIKE '%' || $1 || '%' OR u.display_name ILIKE '%' || $1 || '%')
-		  AND ($2 = false OR u.is_psychologist = true)
 		ORDER BY us.is_online DESC, u.display_name ASC
-		LIMIT $3
+		LIMIT $2
 	`
 
-	rows, err := h.db.Query(sqlQuery, query, psychologistsOnly, limit)
+	rows, err := h.db.Query(sqlQuery, query, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search users"})
 		return
@@ -119,26 +116,24 @@ func (h *ProfileHandler) SearchUsers(c *gin.Context) {
 	users := []map[string]interface{}{}
 	for rows.Next() {
 		var user struct {
-			ID             string
-			Username       string
-			DisplayName    string
-			AvatarURL      string
-			Bio            string
-			Role           string
-			IsPsychologist bool
-			IsOnline       bool
+			ID          string
+			Username    string
+			DisplayName string
+			AvatarURL   string
+			Bio         string
+			Role        string
+			IsOnline    bool
 		}
 		rows.Scan(&user.ID, &user.Username, &user.DisplayName, &user.AvatarURL,
-			&user.Bio, &user.Role, &user.IsPsychologist, &user.IsOnline)
+			&user.Bio, &user.Role, &user.IsOnline)
 		users = append(users, map[string]interface{}{
-			"id":              user.ID,
-			"username":        user.Username,
-			"display_name":    user.DisplayName,
-			"avatar_url":      user.AvatarURL,
-			"bio":             user.Bio,
-			"role":            user.Role,
-			"is_psychologist": user.IsPsychologist,
-			"is_online":       user.IsOnline,
+			"id":           user.ID,
+			"username":     user.Username,
+			"display_name": user.DisplayName,
+			"avatar_url":   user.AvatarURL,
+			"bio":          user.Bio,
+			"role":         user.Role,
+			"is_online":    user.IsOnline,
 		})
 	}
 

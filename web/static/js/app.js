@@ -207,7 +207,7 @@ function renderNavbar() {
           <li><a href="#" class="nav-link ${state.currentView === 'groups' ? 'active' : ''}" data-view="groups">Групи</a></li>
           <li><a href="#" class="nav-link ${state.currentView === 'sessions' ? 'active' : ''}" data-view="sessions">Вебінари</a></li>
           <li><a href="#" class="nav-link ${state.currentView === 'appointments' ? 'active' : ''}" data-view="appointments">Зустрічі</a></li>
-          ${state.user?.role === 'admin' ? '<li><a href="#" class="nav-link" data-view="admin">Адмін</a></li>' : ''}
+          ${state.user?.role === 'super_admin' ? '<li><a href="#" class="nav-link" data-view="admin">Адмін</a></li>' : ''}
         </ul>
         <button class="btn btn-secondary" onclick="logout()">Вийти</button>
       </div>
@@ -314,7 +314,7 @@ function renderSessions() {
           <div class="glass-card">
             <h3>${session.title}</h3>
             <p style="color: var(--text-secondary); margin: 0.5rem 0;">${session.description || ''}</p>
-            <p style="margin: 0.5rem 0;"><strong>Психолог:</strong> ${session.psychologist?.display_name || 'Невідомий'}</p>
+            <p style="margin: 0.5rem 0;"><strong>Ведучий:</strong> ${session.host?.display_name || 'Невідомий'}</p>
             <p style="margin: 0.5rem 0;"><strong>Дата:</strong> ${new Date(session.scheduled_at).toLocaleString('uk-UA')}</p>
             <button class="btn btn-primary" style="margin-top: 1rem; width: 100%;">Приєднатись</button>
           </div>
@@ -332,7 +332,7 @@ function renderAppointments() {
         ${state.appointments.map(apt => `
           <div class="glass-card">
             <h3>${apt.title || 'Консультація'}</h3>
-            <p><strong>З:</strong> ${apt.psychologist?.display_name || apt.client?.display_name}</p>
+            <p><strong>З:</strong> ${apt.provider?.display_name || apt.client?.display_name}</p>
             <p><strong>Дата:</strong> ${new Date(apt.scheduled_at).toLocaleString('uk-UA')}</p>
             <p><strong>Тривалість:</strong> ${apt.duration_minutes} хв</p>
             <span class="badge badge-${apt.status === 'confirmed' ? 'success' : 'warning'}">${apt.status}</span>
