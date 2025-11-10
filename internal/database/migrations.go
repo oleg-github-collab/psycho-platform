@@ -259,27 +259,6 @@ func RunMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_activity_feed_user ON activity_feed(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_group_invitations_code ON group_invitations(invitation_code)`,
 		`CREATE INDEX IF NOT EXISTS idx_topics_pinned ON topics(is_pinned, pinned_at)`,
-
-		`ALTER TABLE users DROP COLUMN IF EXISTS is_psychologist`,
-		`ALTER TABLE users ALTER COLUMN role SET DEFAULT 'basic'`,
-		`DO $$ BEGIN
-			IF EXISTS (
-				SELECT 1 FROM information_schema.columns
-				WHERE table_name = 'sessions' AND column_name = 'psychologist_id'
-			) THEN
-				ALTER TABLE sessions RENAME COLUMN psychologist_id TO host_id;
-			END IF;
-		END $$`,
-		`DO $$ BEGIN
-			IF EXISTS (
-				SELECT 1 FROM information_schema.columns
-				WHERE table_name = 'appointments' AND column_name = 'psychologist_id'
-			) THEN
-				ALTER TABLE appointments RENAME COLUMN psychologist_id TO provider_id;
-			END IF;
-		END $$`,
-		`DROP INDEX IF EXISTS idx_sessions_psychologist`,
-		`DROP INDEX IF EXISTS idx_appointments_psychologist`,
 	}
 
 	for _, migration := range migrations {
