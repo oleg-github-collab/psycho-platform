@@ -259,6 +259,25 @@ func RunMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_activity_feed_user ON activity_feed(user_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_group_invitations_code ON group_invitations(invitation_code)`,
 		`CREATE INDEX IF NOT EXISTS idx_topics_pinned ON topics(is_pinned, pinned_at)`,
+
+		// Fix old column names
+		`DO $$ BEGIN
+			IF EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'sessions' AND column_name = 'psychologist_id'
+			) THEN
+				ALTER TABLE sessions RENAME COLUMN psychologist_id TO host_id;
+			END IF;
+		END $$`,
+
+		`DO $$ BEGIN
+			IF NOT EXISTS (
+				SELECT 1 FROM information_schema.columns
+				WHERE table_name = 'users' AND column_name = 'is_psychologist'
+			) THEN
+				ALTER TABLE users ADD COLUMN is_psychologist BOOLEAN DEFAULT FALSE;
+			END IF;
+		END $$`,
 	}
 
 	for _, migration := range migrations {
