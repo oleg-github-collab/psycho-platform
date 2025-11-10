@@ -31,9 +31,11 @@ func Setup(db *sql.DB, redis *redis.Client, hub *websocket.Hub, cfg *config.Conf
 	r.Use(middleware.Logger())
 	r.Use(middleware.CORS(cfg.FrontendURL))
 
-	// Rate limiting
-	rateLimiter := middleware.NewRateLimiter(redis, 60) // 60 requests per minute
-	r.Use(rateLimiter.Middleware())
+	// Rate limiting (only if Redis is available)
+	if redis != nil {
+		rateLimiter := middleware.NewRateLimiter(redis, 60) // 60 requests per minute
+		r.Use(rateLimiter.Middleware())
+	}
 
 	// Static files
 	r.Static("/static", "./web/static")

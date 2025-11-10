@@ -6,7 +6,11 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func NewRedisClient(url string) *redis.Client {
+func NewRedisClient(url string) (*redis.Client, error) {
+	if url == "" {
+		url = "localhost:6379"
+	}
+
 	opts, err := redis.ParseURL(url)
 	if err != nil {
 		// Fallback to simple host:port
@@ -21,8 +25,8 @@ func NewRedisClient(url string) *redis.Client {
 	// Test connection
 	ctx := context.Background()
 	if err := client.Ping(ctx).Err(); err != nil {
-		panic("Failed to connect to Redis: " + err.Error())
+		return nil, err
 	}
 
-	return client
+	return client, nil
 }
